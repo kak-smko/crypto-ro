@@ -47,7 +47,7 @@
 //! let data = b"binary data \x01\x02\x03";
 //! let key = "encryption key";
 //!
-//! let encrypted = cryptor.encrypt(std::str::from_utf8(data).unwrap(), key).unwrap();
+//! let encrypted = cryptor.encrypt(data, key).unwrap();
 //! let decrypted = cryptor.decrypt(&encrypted, key).unwrap();
 //!
 //! assert_eq!(decrypted.as_bytes(), data);
@@ -87,7 +87,7 @@ impl Cryptor {
     /// Encrypts raw bytes using the provided key.
     ///
     /// # Arguments
-    /// * `text` - The plaintext to encrypt
+    /// * `data` - The bytes to encrypt
     /// * `key` - The encryption key
     ///
     /// # Returns
@@ -98,21 +98,19 @@ impl Cryptor {
     /// use crypt_ro::Cryptor;
     ///
     /// let cryptor = Cryptor::new();
-    /// let encrypted = cryptor.encrypt("secret data", "key123").unwrap();
+    /// let encrypted = cryptor.encrypt(b"secret data", "key123").unwrap();
     /// assert!(!encrypted.is_empty());
     /// ```
-    pub fn encrypt(&self, text: &str, key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn encrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         let matrix_size=self.matrix;
         let key_bytes = generate_password(matrix_size,key.as_bytes());
-
+        let data_size = (data.len() as u16).to_be_bytes();
         let random_prefix = get_random_bytes(6);
 
-        let mut padded_text = Vec::with_capacity(random_prefix.len() + text.len());
+        let mut padded_text = Vec::with_capacity(8 + data.len());
+        padded_text.extend_from_slice(&data_size);
         padded_text.extend_from_slice(&random_prefix);
-        padded_text.extend_from_slice(text.as_bytes());
-
-        let pad_len = (matrix_size - (padded_text.len() % matrix_size)) % matrix_size;
-        padded_text.resize(padded_text.len() + pad_len, 0);
+        padded_text.extend_from_slice(data);
 
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
         shuffle(&mut padded_text,seed_sum,5);
@@ -132,7 +130,6 @@ impl Cryptor {
         }
 
         mix(matrix_size,&mut padded_text, &key_bytes);
-
         Ok(padded_text)
     }
 
@@ -154,7 +151,7 @@ impl Cryptor {
     /// let encrypted = cryptor.encrypt_text("secret message", "password").unwrap();
     /// assert!(!encrypted.contains('/'));  // URL-safe
     pub fn encrypt_text(&self, text: &str, key: &str) -> Result<String, Box<dyn Error>> {
-        Ok(URL_SAFE.encode(self.encrypt(text, key)?).trim_end_matches('=').to_string())
+        Ok(URL_SAFE.encode(self.encrypt(text.as_bytes(), key)?).trim_end_matches('=').to_string())
     }
 
     /// Decrypts bytes using the provided key.
@@ -164,23 +161,20 @@ impl Cryptor {
     /// * `key` - The decryption key
     ///
     /// # Returns
-    /// A `Result` containing the decrypted string or an error if decryption fails.
+    /// A `Result` containing the decrypted bytes or an error if decryption fails.
     ///
     /// # Example
     /// ```
     /// use crypt_ro::Cryptor;
     ///
     /// let cryptor = Cryptor::new();
-    /// let encrypted = cryptor.encrypt("data", "key").unwrap();
+    /// let encrypted = cryptor.encrypt(b"data", "key").unwrap();
     /// let decrypted = cryptor.decrypt(&encrypted, "key").unwrap();
-    /// assert_eq!(decrypted, "data");
+    /// assert_eq!(decrypted, b"data");
     /// ```
-    pub fn decrypt(&self, encoded: &Vec<u8>, key: &str) -> Result<String, Box<dyn Error>> {
+    pub fn decrypt(&self, encoded: &Vec<u8>, key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut decoded = encoded.clone();
         let matrix_size=self.matrix;
-        if decoded.len() % matrix_size != 0 {
-            return Err("Invalid Token Matrix Length".into());
-        }
 
         let key_bytes = generate_password(matrix_size,key.as_bytes());
         unmix(matrix_size,&mut decoded, &key_bytes);
@@ -198,15 +192,12 @@ impl Cryptor {
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
         unshuffle(&mut decoded, seed_sum,5);
 
-        if decoded.len() < matrix_size {
+        let data_size = u16::from_be_bytes([decoded[0], decoded[1]]) as usize;
+        if decoded.len() < data_size+8 {
             return Err("Invalid Token Matrix Length".into());
         }
-        let result_bytes = &decoded[6..];
-        let result = String::from_utf8(result_bytes.to_vec())?
-            .trim_end_matches('\0')
-            .to_string();
-
-        Ok(result)
+        let result_bytes = &decoded[8..data_size+8];
+        Ok(result_bytes.to_vec())
     }
 
     /// Decrypts a URL-safe base64 encoded string using the provided key.
@@ -235,8 +226,9 @@ impl Cryptor {
         }
 
         let data = URL_SAFE.decode(&input)?;
-
-        Ok(self.decrypt(&data, &key)?)
+        let result = String::from_utf8(self.decrypt(&data, &key)?)?
+            .to_string();
+        Ok(result)
     }
 
     /// Sets the matrix size used for cryptographic operations.

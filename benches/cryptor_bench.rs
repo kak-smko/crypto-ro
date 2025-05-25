@@ -16,18 +16,20 @@ fn setup_cryptor() -> Cryptor {
 fn bench_cryptor_encrypt(c: &mut Criterion) {
     let mut cryptor = setup_cryptor();
     let text = "a".repeat(SIZE);
+    let text = text.as_bytes();
     let key = "strong-password-123";
 
     c.bench_function(&format!("Cryptor Encrypt {SIZE}B"), |b| {
-        b.iter(|| cryptor.encrypt(black_box(&text), black_box(key)).unwrap())
+        b.iter(|| cryptor.encrypt(black_box(text), black_box(key)).unwrap())
     });
 }
 
 fn bench_cryptor_decrypt(c: &mut Criterion) {
     let mut cryptor = setup_cryptor();
     let text = "a".repeat(SIZE);
+    let text = text.as_bytes();
     let key = "strong-password-123";
-    let encrypted = cryptor.encrypt(&text, key).unwrap();
+    let encrypted = cryptor.encrypt(text, key).unwrap();
 
     c.bench_function(&format!("Cryptor Decrypt {SIZE}B"), |b| {
         b.iter(|| cryptor.decrypt(black_box(&encrypted), black_box(key)).unwrap())

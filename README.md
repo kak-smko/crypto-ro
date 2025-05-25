@@ -50,12 +50,12 @@ fn process_chat_messages() {
     // Encrypt 1000 messages in milliseconds
     let messages: Vec<String> = /* ... */;
     let encrypted: Vec<_> = messages.iter()
-        .map(|msg| cryptor.encrypt(msg, key).unwrap())
+        .map(|msg| cryptor.encrypt_text(msg, key).unwrap())
         .collect();
     
     // Decrypt just as fast
     let decrypted: Vec<_> = encrypted.iter()
-        .map(|cipher| cryptor.decrypt(cipher, key).unwrap())
+        .map(|cipher| cryptor.decrypt_text(cipher, key).unwrap())
         .collect();
 }
 ```
@@ -91,12 +91,12 @@ fn test(){
     let key = "encryption-key";
 
     // Encrypt raw bytes
-    let encrypted = cryptor.encrypt(std::str::from_utf8(data).unwrap(), key).unwrap();
+    let encrypted = cryptor.encrypt(data, key).unwrap();
 
     // Decrypt
     let decrypted = cryptor.decrypt(&encrypted, key).unwrap();
 
-    assert_eq!(decrypted.as_bytes(), data);
+    assert_eq!(decrypted, data);
 }
 ```
 
@@ -128,14 +128,14 @@ fn test(){
 
 Crypt-ro delivers **blazing-fast** encryption/decryption speeds, competitive with industry-standard algorithms:
 
-| Algorithm   | Operation | 50B Data          | Comparison          |
-|-------------|-----------|-------------------|---------------------|
-| Crypt-ro    | Encrypt   | 636-665 ns        | ~1.4x AES-256       |
-| Crypt-ro    | Decrypt   | 428-436 ns        | **Faster** than AES |
-| AES-256-GCM | Encrypt   | 456-457 ns        | Reference           |
-| AES-256-GCM | Decrypt   | 439-460 ns        | Reference           |
-| RSA-2048    | Encrypt   | 168-171 μs        | ~250x slower        |
-| RSA-2048    | Decrypt   | 1.3-1.4 ms        | ~3000x slower       |
+| Algorithm   | Operation | 50B Data   | Comparison          |
+|-------------|-----------|------------|---------------------|
+| Crypt-ro    | Encrypt   | 530-550 ns | ~1.1x AES-256       |
+| Crypt-ro    | Decrypt   | 260-280 ns | **Faster** than AES |
+| AES-256-GCM | Encrypt   | 456-457 ns | Reference           |
+| AES-256-GCM | Decrypt   | 439-460 ns | Reference           |
+| RSA-2048    | Encrypt   | 168-171 μs | ~250x slower        |
+| RSA-2048    | Decrypt   | 1.3-1.4 ms | ~3000x slower       |
 
 **Key Advantages:**
 - ⚡ **Sub-microsecond** operations for small data

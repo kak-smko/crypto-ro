@@ -4,9 +4,10 @@ use crypt_ro::Cryptor;
 fn test_encrypt_decrypt_roundtrip() {
     let cryptor = Cryptor::new(); // Default 32-byte matrix
     let text = "a".repeat(64);
+    let text = text.as_bytes();
     let key = "strong-password-123";
 
-    let encrypted = cryptor.encrypt(&text, key).unwrap();
+    let encrypted = cryptor.encrypt(text, key).unwrap();
     let decrypted = cryptor.decrypt(&encrypted, key).unwrap();
 
     assert_eq!(decrypted, text);
@@ -61,3 +62,94 @@ fn test_special_characters() {
 
     assert_eq!(decrypted, text);
 }
+
+
+
+
+    #[test]
+    fn test_encrypt_decrypt_text_roundtrip() {
+        let cryptor = Cryptor::new();
+        let text = "Hello, world! こんにちは! 😊";
+        let key = "secure password 123";
+
+        let encrypted = cryptor.encrypt_text(text, key).unwrap();
+        let decrypted = cryptor.decrypt_text(&encrypted, key).unwrap();
+
+        assert_eq!(decrypted, text);
+    }
+
+
+    #[test]
+    fn test_encrypt_decrypt_binary_data() {
+        let cryptor = Cryptor::new();
+        let data: &[u8] = &[0x01, 0x02, 0x03, 0xff, 0x00, 0x7f];
+        let key = "binary key";
+
+        let encrypted = cryptor.encrypt(data, key).unwrap();
+        let decrypted = cryptor.decrypt(&encrypted, key).unwrap();
+
+        assert_eq!(decrypted, data);
+    }
+
+    #[test]
+    fn test_different_matrix_sizes() {
+        let sizes = [16, 32, 64, 128];
+        let text = "The quick brown fox jumps over the lazy dog";
+        let key = "matrix size test";
+
+        for size in sizes {
+            let mut cryptor = Cryptor::new();
+            cryptor.set_matrix(size);
+
+            let encrypted = cryptor.encrypt_text(text, key).unwrap();
+            let decrypted = cryptor.decrypt_text(&encrypted, key).unwrap();
+
+            assert_eq!(decrypted, text);
+        }
+    }
+
+    #[test]
+    fn test_wrong_key_fails() {
+        let cryptor = Cryptor::new();
+        let text = "secret message";
+        let key = "correct key";
+        let wrong_key = "wrong key";
+
+        let encrypted = cryptor.encrypt_text(text, key).unwrap();
+        let decrypted = cryptor.decrypt_text(&encrypted, wrong_key);
+        assert!(decrypted.is_err());
+    }
+
+
+    #[test]
+    fn test_encrypt_decrypt_long_text() {
+        let cryptor = Cryptor::new();
+        let text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(100);
+        let key = "long text key";
+
+        let encrypted = cryptor.encrypt_text(&text, key).unwrap();
+        let decrypted = cryptor.decrypt_text(&encrypted, key).unwrap();
+
+        assert_eq!(decrypted, text);
+    }
+
+    #[test]
+    fn test_decrypt_invalid_length_fails() {
+        let cryptor = Cryptor::new();
+        let invalid_data = vec![1u8; 31];
+
+        let result = cryptor.decrypt(&invalid_data, "any key");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_url_safe_base64() {
+        let cryptor = Cryptor::new();
+        let text = "test";
+        let key = "key";
+
+        let encrypted = cryptor.encrypt_text(text, key).unwrap();
+        assert!(!encrypted.contains('+'));
+        assert!(!encrypted.contains('/'));
+        assert!(!encrypted.ends_with('='));
+    }
