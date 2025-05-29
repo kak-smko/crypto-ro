@@ -1,10 +1,10 @@
 [package]
 name = "crypt-ro"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Blazing-fast matrix-based encryption library with configurable transformations"
 license = "MIT OR Apache-2.0"
-authors = ["Kak Smko <ba.smko@example.com>"]
+authors = ["Kak Smko <ba.smko@gmail.com>"]
 repository = "https://github.com/kak-smko/crypt-ro"
 documentation = "https://docs.rs/crypt-ro"
 readme = "README.md"

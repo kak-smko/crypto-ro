@@ -9,7 +9,6 @@ fn test_encrypt_decrypt_roundtrip() {
 
     let encrypted = cryptor.encrypt(text, key).unwrap();
     let decrypted = cryptor.decrypt(&encrypted, key).unwrap();
-
     assert_eq!(decrypted, text);
 }
 
@@ -49,6 +48,25 @@ fn test_empty_input() {
     let encrypted = cryptor.encrypt_text("", "key").unwrap();
     let decrypted = cryptor.decrypt_text(&encrypted, "key").unwrap();
     assert_eq!(decrypted, "");
+}
+
+fn count_char_differences(text1: &str, text2: &str) -> usize {
+    let mut differences = 0;
+
+    // Compare characters up to the length of the shorter string
+    let mut chars1 = text1.chars();
+    let mut chars2 = text2.chars();
+
+    loop {
+        match (chars1.next(), chars2.next()) {
+            (Some(c1), Some(c2)) if c1 != c2 => differences += 1,
+            (Some(_), None) | (None, Some(_)) => differences += 1, // One string is longer
+            (None, None) => break, // Both strings ended
+            _ => continue, // Characters are equal
+        }
+    }
+
+    differences
 }
 
 #[test]

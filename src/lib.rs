@@ -77,7 +77,7 @@ use crate::util::{generate_password, get_random_bytes, mix, shuffle, unmix, unsh
 pub struct Cryptor {
     matrix: usize,
 }
-
+const RANDOM_LEN: usize = 3;
 impl Cryptor {
     /// Creates a new `Cryptor` instance with default matrix size (32).
     pub fn new() -> Self {
@@ -104,32 +104,31 @@ impl Cryptor {
     pub fn encrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         let matrix_size=self.matrix;
         let key_bytes = generate_password(matrix_size,key.as_bytes());
-        let data_size = (data.len() as u16).to_be_bytes();
+        let data_size = (data.len() as u32).to_be_bytes();
         let random_prefix = get_random_bytes(6);
-
-        let mut padded_text = Vec::with_capacity(8 + data.len());
+        let seed_random = random_prefix.iter().map(|&b| b as u16).sum::<u16>() as u64;
+        let mut padded_text = Vec::with_capacity(10 + data.len());
         padded_text.extend_from_slice(&data_size);
         padded_text.extend_from_slice(&random_prefix);
         padded_text.extend_from_slice(data);
 
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
-        shuffle(&mut padded_text,seed_sum,5);
+        shuffle(&mut padded_text,seed_sum.wrapping_add(seed_random),5);
 
         let mut matrix = padded_text.chunks_exact_mut(matrix_size).collect::<Vec<_>>();
         let matrix_len=matrix.len();
 
         for i in 0..matrix_len {
-            let seed = match matrix.get(i+1) {
-                None => {
-                    key_bytes[0] as u64}
-                Some(a) => {
-                        a[0] as u64
-                }
-            };
-            shuffle(&mut matrix[i], seed,2);
+            let seed = matrix.get(i+1)
+                .map(|b| b[0] as u64)
+                .unwrap_or(key_bytes[0] as u64);
+            shuffle(&mut matrix[i], seed.wrapping_add(seed_random),2);
         }
 
         mix(matrix_size,&mut padded_text, &key_bytes);
+        let seed_random=(seed_random as u16).to_be_bytes();
+        padded_text.push(seed_random[0]);
+        padded_text.push(seed_random[1]);
         Ok(padded_text)
     }
 
@@ -173,7 +172,14 @@ impl Cryptor {
     /// assert_eq!(decrypted, b"data");
     /// ```
     pub fn decrypt(&self, encoded: &Vec<u8>, key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-        let mut decoded = encoded.clone();
+        let len=encoded.len();
+        if len < 6 {
+            return Err("Invalid Token Matrix Length".into());
+        }
+
+        let seed_random=u16::from_be_bytes([encoded[len - 2],encoded[len - 1]]) as u64;
+        let mut decoded = encoded[..len-2].to_vec();
+        let len=len-2;
         let matrix_size=self.matrix;
 
         let key_bytes = generate_password(matrix_size,key.as_bytes());
@@ -181,22 +187,21 @@ impl Cryptor {
         let mut matrix = decoded.chunks_exact_mut(matrix_size).collect::<Vec<_>>();
         let matrix_len=matrix.len();
         for i in (0..matrix_len).rev() {
-            let seed = match matrix.get(i + 1) {
-                None => {key_bytes[0] as u64}
-                Some(a) => {a[0] as u64}
-            };
-            unshuffle(&mut matrix[i], seed,2);
+            let seed = matrix.get(i+1)
+                .map(|b| b[0] as u64)
+                .unwrap_or(key_bytes[0] as u64);
+            unshuffle(&mut matrix[i], seed.wrapping_add(seed_random),2);
         }
 
 
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
-        unshuffle(&mut decoded, seed_sum,5);
+        unshuffle(&mut decoded, seed_sum.wrapping_add(seed_random),5);
 
-        let data_size = u16::from_be_bytes([decoded[0], decoded[1]]) as usize;
-        if decoded.len() < data_size+8 {
+        let data_size = u32::from_be_bytes([decoded[0], decoded[1], decoded[2], decoded[3]]) as usize;
+        if len < data_size+10 {
             return Err("Invalid Token Matrix Length".into());
         }
-        let result_bytes = &decoded[8..data_size+8];
+        let result_bytes = &decoded[10..data_size+10];
         Ok(result_bytes.to_vec())
     }
 
