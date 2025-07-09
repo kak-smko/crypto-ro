@@ -54,10 +54,12 @@
 //! ```
 
 mod util;
+mod rand;
 
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use std::error::Error;
-use crate::util::{generate_password, get_random_bytes, mix, shuffle, unmix, unshuffle};
+use crate::rand::SimpleRng;
+use crate::util::{generate_password, mix, shuffle, unmix, unshuffle};
 
 /// A cryptographic utility for encrypting and decrypting text using a matrix-based transformation.
 ///
@@ -105,7 +107,7 @@ impl Cryptor {
         let matrix_size=self.matrix;
         let key_bytes = generate_password(matrix_size,key.as_bytes());
         let data_size = (data.len() as u32).to_be_bytes();
-        let random_prefix = get_random_bytes(6);
+        let random_prefix = SimpleRng::new_with_time_seed().get_random_bytes(6);
         let seed_random = random_prefix.iter().map(|&b| b as u16).sum::<u16>() as u64;
         let mut padded_text = Vec::with_capacity(10 + data.len());
         padded_text.extend_from_slice(&data_size);

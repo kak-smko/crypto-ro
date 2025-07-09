@@ -1,6 +1,4 @@
-use rand::prelude::SmallRng;
-use rand::rand_core::OsRng;
-use rand::{Rng, SeedableRng, TryRngCore};
+use crate::rand::SimpleRng;
 
 #[inline]
 pub fn generate_password(matrix: usize, password: &[u8]) -> Vec<u8> {
@@ -27,22 +25,22 @@ pub fn generate_password(matrix: usize, password: &[u8]) -> Vec<u8> {
 
 
 pub fn shuffle(data: &mut [u8], seed: u64,step: usize) {
-    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut rng = SimpleRng::new(seed);
     let len=data.len();
     for i in (1..len).rev().step_by(step) {
-        let j = rng.random_range(0..=i);
+        let j = rng.gen_range(0 as f64, i as f64) as usize;
         data.swap(i, j);
     }
 }
 
 pub fn unshuffle(data: &mut [u8], seed: u64,step: usize) {
-    let mut rng = SmallRng::seed_from_u64(seed);
+    let mut rng = SimpleRng::new(seed);
     let len=data.len();
     let swap_count = len / step + if len % step != 0 { 1 } else { 0 };
     let mut swaps = Vec::with_capacity(swap_count);
 
     for i in (1..len).rev().step_by(step) {
-            let j = rng.random_range(0..=i);
+            let j = rng.gen_range(0 as f64, i as f64) as usize;
             swaps.push((i, j));
     }
 
@@ -79,11 +77,4 @@ pub fn unmix(block_size: usize, buf: &mut [u8], key: &[u8]) {
             }
         };
     }
-}
-
-#[inline]
-pub fn get_random_bytes(len: usize) -> Vec<u8> {
-    let mut buf = vec![0u8; len];
-    OsRng.try_fill_bytes(&mut buf).unwrap();
-    buf
 }

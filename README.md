@@ -35,7 +35,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-crypt-ro =  "0.1.0"
+crypt-ro =  "1.0.0"
 ```
 
 ## Usage Example
@@ -130,8 +130,8 @@ Crypt-ro delivers **blazing-fast** encryption/decryption speeds, competitive wit
 
 | Algorithm   | Operation | 50B Data   | Comparison          |
 |-------------|-----------|------------|---------------------|
-| Crypt-ro    | Encrypt   | 530-550 ns | ~1.1x AES-256       |
-| Crypt-ro    | Decrypt   | 260-280 ns | **Faster** than AES |
+| Crypt-ro    | Encrypt   | 250-270 ns | **Faster** than AES |
+| Crypt-ro    | Decrypt   | 250-270 ns | **Faster** than AES |
 | AES-256-GCM | Encrypt   | 456-457 ns | Reference           |
 | AES-256-GCM | Decrypt   | 439-460 ns | Reference           |
 | RSA-2048    | Encrypt   | 168-171 μs | ~250x slower        |
