@@ -1,6 +1,23 @@
 use crypt_ro::Cryptor;
 
 #[test]
+fn test_decrypt_python() {
+    let cryptor = Cryptor::new(); // Default 32-byte matrix
+    let secret = "my secret message";
+    let key = "strong password";
+    let decrypted = cryptor.decrypt_text("B2VzbxcUAgMTFh7eT8JlA3U9Cg0KRQNhElMQCnNkcqgDFg", key).unwrap();
+
+    assert_eq!(decrypted, secret);
+}
+#[test]
+fn test_decrypt_js() {
+    let cryptor = Cryptor::new(); // Default 32-byte matrix
+    let secret = "my secret message";
+    let key = "strong password";
+    let decrypted = cryptor.decrypt_text("q2Vyb2MUUm8MFAoSHAoBFhE-G38KIANBchBXbnMFcnUB2Q==", key).unwrap();
+    assert_eq!(decrypted, secret);
+}
+#[test]
 fn test_encrypt_decrypt_roundtrip() {
     let cryptor = Cryptor::new(); // Default 32-byte matrix
     let text = "abc".repeat(1000);

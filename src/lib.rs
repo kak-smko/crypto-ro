@@ -58,6 +58,7 @@ mod rand;
 
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use std::error::Error;
+use std::iter::repeat;
 use crate::rand::SimpleRng;
 use crate::util::{generate_password, mix, shuffle, unmix, unshuffle};
 
@@ -105,21 +106,28 @@ impl Cryptor {
     /// ```
     pub fn encrypt(&self, data: &[u8], key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         let matrix_size=self.matrix;
+        let pad = (matrix_size - ((10 + data.len()) % matrix_size)) % matrix_size;
         let key_bytes = generate_password(matrix_size,key.as_bytes());
-        let data_size = (data.len() as u32).to_be_bytes();
+        let data_len = data.len();
+        if data_len>u32::MAX as usize {
+            return Err("Data too Big".into());
+        }
+        let data_size = (data_len as u32).to_be_bytes();
         let random_prefix = SimpleRng::new_with_time_seed().get_random_bytes(6);
         let seed_random = random_prefix.iter().map(|&b| b as u16).sum::<u16>() as u64;
-        let mut padded_text = Vec::with_capacity(10 + data.len());
+        let mut padded_text = Vec::with_capacity(10 + data.len()+pad);
         padded_text.extend_from_slice(&data_size);
         padded_text.extend_from_slice(&random_prefix);
         padded_text.extend_from_slice(data);
-
+        padded_text.extend(repeat(1).take(pad));
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
         shuffle(&mut padded_text,seed_sum.wrapping_add(seed_random),5);
 
         let mut matrix = padded_text.chunks_exact_mut(matrix_size).collect::<Vec<_>>();
         let matrix_len=matrix.len();
-
+        if matrix_len==0 {
+            return Err("Invalid Padding Length".into());
+        }
         for i in 0..matrix_len {
             let seed = matrix.get(i+1)
                 .map(|b| b[0] as u64)
@@ -194,7 +202,6 @@ impl Cryptor {
                 .unwrap_or(key_bytes[0] as u64);
             unshuffle(&mut matrix[i], seed.wrapping_add(seed_random),2);
         }
-
 
         let seed_sum: u64 = key_bytes.iter().map(|&b| b as u64).sum();
         unshuffle(&mut decoded, seed_sum.wrapping_add(seed_random),5);

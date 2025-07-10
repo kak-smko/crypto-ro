@@ -128,14 +128,14 @@ fn test(){
 
 Crypt-ro delivers **blazing-fast** encryption/decryption speeds, competitive with industry-standard algorithms:
 
-| Algorithm   | Operation | 50B Data   | Comparison          |
-|-------------|-----------|------------|---------------------|
-| Crypt-ro    | Encrypt   | 250-270 ns | **Faster** than AES |
-| Crypt-ro    | Decrypt   | 250-270 ns | **Faster** than AES |
-| AES-256-GCM | Encrypt   | 456-457 ns | Reference           |
-| AES-256-GCM | Decrypt   | 439-460 ns | Reference           |
-| RSA-2048    | Encrypt   | 168-171 μs | ~250x slower        |
-| RSA-2048    | Decrypt   | 1.3-1.4 ms | ~3000x slower       |
+| Algorithm   | Operation | 50B Data         | Comparison    |
+|-------------|-----------|------------------|---------------|
+| Cryptor     | Encrypt   | 343-350 ns       | Reference     |
+| Cryptor     | Decrypt   | 369-370 ns       | Reference     |
+| AES-256-GCM | Encrypt   | 460-461 ns       | ~1.3x slower  |
+| AES-256-GCM | Decrypt   | 459-460 ns       | ~1.3x slower  |
+| RSA-2048    | Encrypt   | 172.26-172.29 μs | ~500x slower  |
+| RSA-2048    | Decrypt   | 1.424-1.426 ms   | ~4000x slower |
 
 **Key Advantages:**
 - ⚡ **Sub-microsecond** operations for small data
